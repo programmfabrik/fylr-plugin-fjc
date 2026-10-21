@@ -37,3 +37,24 @@ jobs:
           files: |
             build/${{ env.ZIP_NAME }}
             README.md
+
+  # Tell the fylr Plugin Marketplace about the release once the zip is
+  # reachable, so the catalog lists its tag, date and sha256 within minutes.
+  # FYLR_BOT_PERSONAL_ACCESS_TOKEN is a programmfabrik organization secret;
+  # elsewhere it is empty and notify-release only prints a notice.
+  marketplace:
+    if: "!github.event.release.prerelease"
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install golang
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26"
+          cache: false
+
+      - name: Notify the marketplace
+        run: go run github.com/programmfabrik/fylr-build-plugin@latest notify-release -repo "$GITHUB_REPOSITORY" -tag "$RELEASE_TAG"
+        env:
+          GH_TOKEN: ${{ secrets.FYLR_BOT_PERSONAL_ACCESS_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
